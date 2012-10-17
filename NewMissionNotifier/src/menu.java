@@ -10,25 +10,29 @@ import java.net.URL;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JProgressBar;
 
 import sun.net.www.URLConnection;
 
 
 public class menu extends JComponent implements ActionListener{
 	
-	public static String serverMap="UPDATE ME";
-	public static String serverPlayers="UPDATE ME";
+	public static String serverMap="REFRESH ME";
+	public static String serverPlayers="REFRESH ME";
 	JLabel mapLabel=null;
 	JLabel playersLabel=null;
 	JButton refreshButton=null;
+	JProgressBar progressBar=null;
+	int secsBetweenRefresh=60; //How many seconds between refresh
 	
 	
 	public menu() throws IOException
 	{
 		//set size of window
 		setPreferredSize(new Dimension(200, 300));
-		new getServerInfo();
-		setupComponents();
+		
+		new Thread(new timer()).start();
+		refresh();
 	}
 	
 	private void setupComponents()
@@ -38,6 +42,7 @@ public class menu extends JComponent implements ActionListener{
 			this.remove(mapLabel);
 			this.remove(playersLabel);
 			this.remove(refreshButton);
+			this.remove(progressBar);
 		}
 		
 		mapLabel=null;
@@ -61,10 +66,20 @@ public class menu extends JComponent implements ActionListener{
 		
 		refreshButton=new JButton("REFRESH");
 		refreshButton.setSize(95, 30);
-		refreshButton.setLocation(0,280);
+		refreshButton.setLocation(0,250);
 		refreshButton.setVisible(true);
 		refreshButton.addActionListener(this);
 		this.add(refreshButton);
+		
+		progressBar =new JProgressBar(0, 0);
+		//progressBar.setValue(5);
+		//progressBar.setVisible(true);
+		progressBar.setLocation(0,290);
+		progressBar.setSize(210,20);
+		progressBar.setString((secsBetweenRefresh-progressBar.getValue())+" seconds");
+		progressBar.setMaximum(secsBetweenRefresh);
+		progressBar.setStringPainted(true);
+		this.add(progressBar);
 		
 		repaint();
 	}
@@ -74,25 +89,54 @@ public class menu extends JComponent implements ActionListener{
 		//If the settings button is clicked
 		if(e.getSource()==refreshButton)
 		{
-			new getServerInfo();
-			setupComponents();
-			repaint();
-			System.out.println("Refreshed");
+			refresh();
 		}
 	}
 	
-	private static class getServerInfo implements Runnable
+	//Refreshes server stats
+	public void refresh()
+	{
+		
+		
+		new Thread(new getServerInfo()).start();
+
+	}
+	
+	private class timer implements Runnable
+	{
+		public void run()
+		{
+			while(true)
+			{
+				int currentTime=0;
+				
+				while(currentTime!=secsBetweenRefresh)
+				{
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+					currentTime+=1;
+					progressBar.setValue(currentTime);
+					progressBar.setString((secsBetweenRefresh-progressBar.getValue())+" seconds");
+				}
+				refresh();
+			}
+		}
+	}
+	
+	private class getServerInfo implements Runnable
 	{
 
-		public getServerInfo()
-		{
-			run();
-		}
-		
+	
 		@Override
 		public void run()
 		{
-			// TODO Auto-generated method stub
+			String tempMap=serverMap;
+			
 			try
 			{
 				URL oracle;
@@ -139,6 +183,15 @@ public class menu extends JComponent implements ActionListener{
 			{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+			}
+			
+			setupComponents();
+			repaint();
+			System.out.println("Refreshed");
+			
+			if(tempMap.compareTo(serverMap)!=0)
+			{
+				System.out.println("!!OMG NEW MAP!!");
 			}
 			
 		}
